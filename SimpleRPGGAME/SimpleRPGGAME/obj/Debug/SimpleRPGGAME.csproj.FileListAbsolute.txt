@@ -1,0 +1,13 @@
+C:\Users\kobe\source\repos\SimpleRPGGAME\SimpleRPGGAME\bin\Debug\SimpleRPGGAME.exe.config
+C:\Users\kobe\source\repos\SimpleRPGGAME\SimpleRPGGAME\bin\Debug\SimpleRPGGAME.exe
+C:\Users\kobe\source\repos\SimpleRPGGAME\SimpleRPGGAME\bin\Debug\SimpleRPGGAME.pdb
+C:\Users\kobe\source\repos\SimpleRPGGAME\SimpleRPGGAME\bin\Debug\Engine.dll
+C:\Users\kobe\source\repos\SimpleRPGGAME\SimpleRPGGAME\bin\Debug\Engine.pdb
+C:\Users\kobe\source\repos\SimpleRPGGAME\SimpleRPGGAME\obj\Debug\SimpleRPGGAME.csprojAssemblyReference.cache
+C:\Users\kobe\source\repos\SimpleRPGGAME\SimpleRPGGAME\obj\Debug\SimpleRPGGAME.Properties.Resources.resources
+C:\Users\kobe\source\repos\SimpleRPGGAME\SimpleRPGGAME\obj\Debug\SimpleRPGGAME.Form1.resources
+C:\Users\kobe\source\repos\SimpleRPGGAME\SimpleRPGGAME\obj\Debug\SimpleRPGGAME.csproj.GenerateResource.cache
+C:\Users\kobe\source\repos\SimpleRPGGAME\SimpleRPGGAME\obj\Debug\SimpleRPGGAME.csproj.CoreCompileInputs.cache
+C:\Users\kobe\source\repos\SimpleRPGGAME\SimpleRPGGAME\obj\Debug\SimpleRPGGAME.csproj.CopyComplete
+C:\Users\kobe\source\repos\SimpleRPGGAME\SimpleRPGGAME\obj\Debug\SimpleRPGGAME.exe
+C:\Users\kobe\source\repos\SimpleRPGGAME\SimpleRPGGAME\obj\Debug\SimpleRPGGAME.pdb
