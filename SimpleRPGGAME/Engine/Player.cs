@@ -1,10 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.Xml;
 using System.ComponentModel;
+using System.Linq;
+using System.Xml;
 
 namespace Engine
 {
@@ -12,6 +10,8 @@ namespace Engine
     {
         private int _gold;
         private int _experiencePoints;
+        private Monster _currentMonster;
+        public event EventHandler<MessageEventArgs> OnMessage;
         public int Gold { get { return _gold; } set { _gold = value;
                 OnPropertyChanged("Gold");
             } }
@@ -26,7 +26,16 @@ namespace Engine
         }
         public BindingList<InventoryItem> Inventory { get; set; }
         public BindingList<PlayerQuest> Quests { get; set; }
-        public Location CurrentLocation { get; set; }
+        public Location _currentLocation;
+        public Location CurrentLocation
+        {
+            get { return _currentLocation; }
+            set
+            {
+                _currentLocation = value;
+                OnPropertyChanged("CurrentLocation");
+            }
+        }
         public Weapon CurrentWeapon { get; set; }
         public List<Weapon> Weapons
         {
@@ -297,5 +306,222 @@ namespace Engine
             }
         }
 
+        private void RaiseMessage(string message,bool addExtraNewLine=false)
+        {
+            if (OnMessage != null)
+            {
+                OnMessage(this, new MessageEventArgs(message, addExtraNewLine));
+            }
+        }
+        public void MoveNorth()
+        {
+            if (CurrentLocation.LocationToNorth != null)
+            {
+                MoveTo(CurrentLocation.LocationToNorth);
+            }
+        }
+        public void MoveEast()
+        {
+            if (CurrentLocation.LocationToEast != null)
+            {
+                MoveTo(CurrentLocation.LocationToEast);
+            }
+        }
+        public void MoveWest()
+        {
+            if (CurrentLocation.LocationToWest != null)
+            {
+                MoveTo(CurrentLocation.LocationToWest);
+            }
+        }
+        public void MoveSouth()
+        {
+            if (CurrentLocation.LocationToSouth != null)
+            {
+                MoveTo(CurrentLocation.LocationToSouth);
+            }
+        }
+
+
+        public void MoveTo(Location newLocation)
+        {
+            if (!HasRequiredItemToEnterThisLocation(newLocation))
+            {
+                RaiseMessage("你必須" + newLocation.ItemRequiredToEnter.Name + "才能進入此區域");
+                return;
+            }
+
+
+
+            CurrentLocation = newLocation;
+            CurrentHitPoints = MaxHitPoints;
+
+            if (newLocation.QuestAvailableHere != null)
+            {
+                bool playerAlreadyHasQuest = HasThisQuest(newLocation.QuestAvailableHere);
+                bool playerAlreadyCompleteQuest = CompletedThisQuest(newLocation.QuestAvailableHere);
+
+                if (playerAlreadyHasQuest)
+                {
+                    if (!playerAlreadyCompleteQuest)
+                    {
+                        bool playerHasAllItemsToCompleteQuest =
+                            HasAllQuestCompletedItem(newLocation.QuestAvailableHere);
+
+                        if (playerHasAllItemsToCompleteQuest)
+                        {
+                            RaiseMessage("");
+                            RaiseMessage("你完成了" + newLocation.QuestAvailableHere.Name + "任務");
+                            RemoveQuestCompletionItems(newLocation.QuestAvailableHere);
+
+                            RaiseMessage("妳得到了: " + newLocation.QuestAvailableHere.RewardEXP.ToString() + "經驗值");
+                            RaiseMessage("以及" + newLocation.QuestAvailableHere.RewardGold + "黃金");
+                            RaiseMessage(newLocation.QuestAvailableHere.RewardItem.Name, true);
+
+                            AddEXPPoints(newLocation.QuestAvailableHere.RewardEXP);
+                            Gold += newLocation.QuestAvailableHere.RewardGold;
+
+                            AddItemToInventory(newLocation.QuestAvailableHere.RewardItem);
+
+                            MarkQuestCompleted(newLocation.QuestAvailableHere);
+                        }
+                    }
+                }
+                else
+                {
+                    
+                    RaiseMessage("你得到了" + newLocation.QuestAvailableHere.Name + "任務");
+                    RaiseMessage(newLocation.QuestAvailableHere.Description);
+                    RaiseMessage("為了完成任務，需要物品:");
+
+                    foreach (QuestCompletionItem qui in newLocation.QuestAvailableHere.QuestCompletionItems)
+                    {
+                        if (qui.Quantity == 1)
+                        {
+                            RaiseMessage(qui.Quantity + " " + qui.Details.Name);
+                        }
+
+                        else
+                        {
+                            RaiseMessage(qui.Quantity + " " + qui.Details.NamePlural);
+                        }
+                    }
+
+                    RaiseMessage(" ");
+
+                    Quests.Add(new PlayerQuest(newLocation.QuestAvailableHere));
+                }
+            }
+
+            if (newLocation.MonsterLivingHere != null)
+            {
+                RaiseMessage("你看到了" + newLocation.MonsterLivingHere.Name);
+                Monster standardMonster = World.MonsterByID(newLocation.MonsterLivingHere.ID);
+
+                _currentMonster = new Monster(standardMonster.ID, "standardMonster.Name", standardMonster.MaxDamage,
+                    standardMonster.RewardEXP, standardMonster.RewardGold, standardMonster.CurrentHitPoints,
+                    standardMonster.MaxHitPoints);
+
+                foreach (LootItem lootItem in standardMonster.LootTable)
+                {
+                    _currentMonster.LootTable.Add(lootItem);
+                }
+                
+            }
+            else
+            {
+                _currentMonster = null;
+            }
+
+
+        }
+
+        public void UseWeapon(Weapon weapon)
+        {
+
+            int damageToMonster = RandomNumberGenerator.NumberBetween(weapon.MinDamage, weapon.MaxDamage);
+            _currentMonster.CurrentHitPoints -= damageToMonster;
+            RaiseMessage("你給於" + _currentMonster.Name +
+                        + damageToMonster + "點傷害");
+            if (_currentMonster.CurrentHitPoints <= 0)
+            {
+                RaiseMessage("");
+                RaiseMessage("你擊敗了" + _currentMonster.Name);
+                AddEXPPoints(_currentMonster.RewardEXP);
+                RaiseMessage("你得到了" + _currentMonster.RewardEXP +"經驗值");
+                Gold += _currentMonster.RewardGold;
+                RaiseMessage("你得到了" + _currentMonster.RewardGold + "金幣");
+                List<InventoryItem> lootedItems = new List<InventoryItem>();
+                foreach (LootItem lootItem in _currentMonster.LootTable)
+                {
+                    if (RandomNumberGenerator.NumberBetween(1, 100) <= lootItem.DropPercentage)
+                    {
+                        lootedItems.Add(new InventoryItem(lootItem.Detail, 1));
+                    }
+                }
+                if (lootedItems.Count == 0)
+                {
+                    foreach (LootItem lootItem in _currentMonster.LootTable)
+                    {
+                        if (lootItem.IsDefaultItem)
+                        {
+                            lootedItems.Add(new InventoryItem(lootItem.Detail, 1));
+                        }
+                    }
+                }
+                foreach (InventoryItem inventoryItem in lootedItems)
+                {
+                    AddItemToInventory(inventoryItem.Details);
+                    if (inventoryItem.Quantity == 1)
+                    {
+                        RaiseMessage("你得到"+inventoryItem.Quantity + " " + inventoryItem.Details.Name);
+                    }
+                    else
+                    {
+                        RaiseMessage("你得到" + inventoryItem.Quantity +" " + inventoryItem.Details.NamePlural);
+                    }
+                }
+                RaiseMessage(" ");
+                MoveTo(CurrentLocation);
+
+            }
+            else
+            {
+                int damageToPlayer = RandomNumberGenerator.NumberBetween(0, _currentMonster.MaxDamage);
+                RaiseMessage(_currentMonster.Name + "對你造成了" +damageToPlayer + "點傷害");
+                CurrentHitPoints -= damageToPlayer;
+
+                if (CurrentHitPoints <= 0)
+                {
+                    RaiseMessage(_currentMonster.Name + "擊殺你");
+
+                    MoveHome();
+                }
+            }
+        }
+        public void UsePotion(HealingPotion potion)
+        {
+            CurrentHitPoints = (CurrentHitPoints + potion.AmountToHeal);
+            if (CurrentHitPoints > MaxHitPoints)
+            {
+                CurrentHitPoints = MaxHitPoints;
+            }
+            RemoveItemFromInventory(potion, 1);
+            RaiseMessage("你使用了" + potion.Name);
+            int damageToPlayer = RandomNumberGenerator.NumberBetween(0, _currentMonster.MaxDamage);
+            RaiseMessage(_currentMonster.Name +"對你造成了" + damageToPlayer + "點傷害");
+            CurrentHitPoints -= damageToPlayer;
+            
+            if (CurrentHitPoints <= 0)
+            {
+                RaiseMessage(_currentMonster.Name + "擊殺你");
+
+                MoveHome();
+            }
+        }
+        private void MoveHome()
+        {
+            MoveTo(World.LocationByID(World.LOCATION_ID_HOME));
+        }
     }
 }
